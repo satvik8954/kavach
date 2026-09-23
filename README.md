@@ -82,42 +82,45 @@ No network calls are made anywhere in the pipeline.
 
 ## Results so far
 
-### Hand-labelled set
+Every number below is measured on messages the model did not train on.
 
-5-fold cross-validation on 110 hand-labelled Indian messages (45 scam, 65 safe). Every message is scored by a model that never saw it during training.
+### Public benchmark: DIFrauD SMS (Boumber et al., LREC-COLING 2024)
 
-| | Accuracy | Precision | Recall | F1 |
+Trained on the DIFrauD SMS train split plus our hand-labelled set, and scored on
+its published test split. Many test messages are near-copies of training
+messages (the same campaign template with a different number or link), so we
+report the harder subset first.
+
+| Test messages | Count | Precision | Recall | F1 |
 |---|---|---|---|---|
-| Model only | 94.5% | 93.3% | 93.3% | 0.93 |
-| **Model + rules** | **95.5%** | **93.5%** | **95.6%** | **0.95** |
+| **No near match in training** | **504 (49 fraud)** | **92.2%** | **95.9%** | **0.94** |
+| All | 658 (128 fraud) | 95.5% | 98.4% | 0.97 |
 
-This set is small and was written by hand from well-known scam patterns, so treat it as a sanity check, not a benchmark.
+A "near match" means character n-gram similarity ≥ 0.9 after lowercasing and
+replacing digits and URLs. By that measure, 62% of the fraud messages in the
+test split are near-copies of a training message, which is why the full-split
+score is higher. The 95.9% recall comes from 49 fraud messages (47 caught),
+so the plausible range is roughly 86–99%.
 
-### Indian Telecom SMS Spam Collection (real messages)
+Run it: `python eval_difraud.py -v` (downloads the data on first run).
 
-`python eval.py --data data/spam_ham_india.csv -v`: 2,267 rows, of which 2,063 remain after dropping duplicates and one empty row (736 spam, 1,327 ham). Duplicates are dropped so the same text can't be in both a training fold and a test fold. 5-fold cross-validation, retraining the model on this corpus in each fold:
+### Hand-labelled Indian set
 
-| | Accuracy | Precision | Recall | F1 |
-|---|---|---|---|---|
-| Model only | 99.4% | 99.7% | 98.6% | 0.99 |
-| Model + rules | 99.4% | 99.7% | 98.6% | 0.99 |
+110 messages (45 scam, 65 safe) in English, Hindi and Hinglish, with 5-fold
+cross-validation: **95.5% accuracy, F1 0.95**.
 
-That's 726 of 736 spam caught, 10 missed and 2 false alarms. Median latency is 2.5 ms per message on a laptop CPU.
+### What these numbers do and don't show
 
-**Read these numbers carefully:**
+- DIFrauD's "fraud" label is mostly classic SMS spam (premium-rate numbers,
+  prize replies), and it's English only. It shows that the pipeline
+  generalises. It doesn't measure UPI traps, fake KYC or digital-arrest
+  scams, and it doesn't test the Hindi or Telugu paths.
+- The hand-labelled set covers those Indian scam types, but it's small and
+  was written by us.
+- **Next:** a held-out test set of real scam messages collected from our own
+  phones, never used for training.
 
-- **This dataset labels promotional spam as spam, not only fraud.** Most of its "spam" is telecom, retail and loan marketing ("FREE 2GB data", "Diwali offers"), which is easy to separate from personal chat. A high score here shows the pipeline separates marketing from chat. It does **not** show that it detects fraud.
-- **The labels are noisy.** Most of the 12 errors are labelling problems: fragments like "https" and "Cart on" marked ham, a real OTP message and TRAI/RBI anti-fraud advisories marked spam. The "ham" also includes several WhatsApp stock-tip group chats that look like investment scams.
-- **The rules add nothing measurable here**, because the classifier already catches the marketing. On this corpus, rules matter because they must *not* fire on ordinary messages: in a live call, one rule signal counts as evidence for a full-screen alert.
-- **The model the demo ships does not transfer yet.** Trained only on the 110 hand-labelled messages and tested on this corpus, it flags **24% of real ham** (318 of 1,327, including "Not feeling well"). It catches only 10.5% of the spam, which is mostly expected because the spam is marketing, not fraud. Before this model is used on real inboxes it needs more real safe messages in training.
-
-**Rule fixes from this evaluation.** Checking where each rule fired on real messages turned up four false triggers, and all four are fixed:
-- `card_details` fired on everyday chat ("I am changing my password"). It now needs a request to hand the password over.
-- `pin_to_receive` matched "pin" inside other words in shop ads.
-- `pay_to_withdraw` fired on legitimate "recharge and activate" telecom offers.
-- `too_good` fired on a rice brand ("Fortune Rozana") and on "guaranteed delivery".
-
-After the fixes, no rule fires on any ham message in the corpus. Every hand-labelled scam that had a rule signal still has one, and the hand-labelled results are unchanged.
+Median latency is about 6 ms per message on a laptop CPU.
 
 ## What's in this repo
 
