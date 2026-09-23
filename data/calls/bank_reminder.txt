@@ -1,0 +1,6 @@
+CALLER: Good afternoon, this is Priya from HDFC Bank credit card services.
+USER: Yes, tell me.
+CALLER: Just a reminder that your card statement is generated and the due date is the fifth of October.
+USER: Okay, I will pay it through the app.
+CALLER: Sure. You can also set up auto-pay from net banking if you like.
+CALLER: Please do not share your OTP or PIN with anyone, including bank staff. Have a good day.

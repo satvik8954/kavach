@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+data/model.pkl
+.pytest_cache/
+.venv/

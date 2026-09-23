@@ -1,0 +1,9 @@
+CALLER: Hello, am I speaking with Mr. Rao?
+USER: Yes, who is this?
+CALLER: This is Inspector Rajesh Verma from Mumbai Cyber Crime branch.
+USER: Okay, what is this about?
+CALLER: A FedEx parcel booked with your Aadhaar was seized at customs. It contains illegal drugs.
+USER: What? I did not send any parcel.
+CALLER: An arrest warrant has been issued in your name. This is now a digital arrest.
+CALLER: Do not disconnect this call and do not inform your family. Stay on video with us.
+CALLER: To prove your innocence, transfer your savings to the RBI verification account.
