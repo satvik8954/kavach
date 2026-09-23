@@ -51,3 +51,12 @@ def test_scam_call_alerts_before_the_money_request():
 
 def test_legit_bank_call_does_not_alert():
     assert not _replay("data/calls/bank_reminder.txt")
+
+
+def test_everyday_chat_and_promos_raise_no_rule_signal():
+    # Rule signals count as evidence for a mid-call alert, so they must not
+    # fire on ordinary chat or shop ads (seen in the Indian SMS corpus).
+    for text in ["I am changing my password",
+                 "Fortune Rozana Basmati Rice 1kg Rs 55, shopping festival at Star Bazaar",
+                 "Recharge with Rs 219 and activate your free ZEE5 subscription"]:
+        assert not scan(text), text

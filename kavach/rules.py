@@ -25,8 +25,8 @@ _RULES: list[tuple[str, float, str, str, re.Pattern]] = [
         0.9,
         "upi",
         "Asks you to enter a UPI PIN to receive money. A PIN is only ever needed to send money.",
-        re.compile(r"(pin|upi).{0,60}(receive|refund|credit|cashback|wapas)|"
-                   r"(receive|refund|credit|cashback|wapas).{0,60}(pin)", re.I),
+        re.compile(r"\b(pin|upi)\b.{0,60}(receive|refund|credit|cashback|wapas)|"
+                   r"(receive|refund|credit|cashback|wapas).{0,60}\bpin\b", re.I),
     ),
     (
         "otp_request",
@@ -73,14 +73,20 @@ _RULES: list[tuple[str, float, str, str, re.Pattern]] = [
         0.85,
         "kyc",
         "Asks for card number, CVV, PIN or password.",
-        re.compile(r"\b(cvv|card number|expiry date|password|customer id)\b", re.I),
+        # "password" alone is everyday chat ("I reset my password"); it only counts
+        # when someone is asked to hand it over.
+        re.compile(r"\b(cvv|card number|expiry date)\b|"
+                   r"(enter|share|send|confirm|provide|verify|give|bata|daal).{0,40}"
+                   r"\b(password|customer id)\b", re.I),
     ),
     (
         "pay_to_withdraw",
         0.8,
         "job_task",
         "Asks you to pay a fee or deposit before you can receive winnings or earnings.",
-        re.compile(r"(processing fee|registration|deposit|tax fee|recharge|pay).{0,60}"
+        # "recharge ... activate" is how every legit telecom offer reads, so a
+        # recharge alone is not a fee demand.
+        re.compile(r"\b(processing fee|registration|deposit|tax fee|pay)\b.{0,60}"
                    r"(withdraw|claim|earnings|prize|activate)|"
                    r"(withdraw|claim).{0,60}(pay|deposit|fee)", re.I),
     ),
@@ -97,8 +103,9 @@ _RULES: list[tuple[str, float, str, str, re.Pattern]] = [
         0.6,
         "lottery",
         "Promises a prize, guaranteed returns or easy daily income.",
-        re.compile(r"(lucky draw|you (have )?won|guaranteed|double within|"
-                   r"\d+ ?percent return|daily just for|rozana)", re.I),
+        re.compile(r"(lucky draw|you (have )?won|guaranteed \d|"
+                   r"guaranteed (returns?|profits?|income|earnings?)|double within|"
+                   r"\d+ ?percent return|daily just for|rozana \d)", re.I),
     ),
 ]
 

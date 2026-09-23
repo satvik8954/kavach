@@ -5,13 +5,15 @@ numbers reflect held-out performance. The dataset is small and hand-curated;
 treat these as a sanity check, not a benchmark.
 """
 
+import argparse
 import statistics
 import sys
 import time
+from pathlib import Path
 
 from sklearn.model_selection import StratifiedKFold
 
-from kavach.classifier import ScamClassifier, load_samples
+from kavach.classifier import ScamClassifier, load_csv, load_samples
 from kavach.pipeline import Kavach
 
 
@@ -28,7 +30,13 @@ def metrics(y_true, y_pred):
 
 
 def main() -> None:
-    rows = load_samples()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--data", type=Path, help="spam/ham CSV (Msg, Label); default: data/samples.jsonl")
+    parser.add_argument("-v", "--verbose", action="store_true", help="list misclassified messages")
+    args = parser.parse_args()
+    sys.stdout.reconfigure(encoding="utf-8")
+
+    rows = load_csv(args.data) if args.data else load_samples()
     labels = [r["label"] == "scam" for r in rows]
     folds = StratifiedKFold(n_splits=5, shuffle=True, random_state=7)
 
@@ -57,10 +65,10 @@ def main() -> None:
           f"{m['fp']} false alarms, {m['tn']} safe messages passed")
     print(f"Latency per message: median {statistics.median(latencies):.1f} ms, "
           f"p95 {sorted(latencies)[int(len(latencies) * 0.95)]:.1f} ms (laptop CPU)")
-    if misses and "-v" in sys.argv:
+    if misses and args.verbose:
         print("\nMisclassified:")
         for label, score, text in misses:
-            print(f"  [{label}, score {score}] {text[:90]}")
+            print(f"  [{label}, score {score}] {' '.join(text.split())[:110]}")
 
 
 if __name__ == "__main__":

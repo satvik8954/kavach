@@ -25,6 +25,25 @@ def load_samples(path: Path = DATA) -> list[dict]:
         return [json.loads(line) for line in f if line.strip()]
 
 
+def load_csv(path: Path) -> list[dict]:
+    """Load a spam/ham CSV (columns Msg, Label), dropping empty and duplicate messages.
+
+    Duplicates are dropped so the same text cannot land in both a training and
+    a test fold.
+    """
+    import csv
+
+    rows, seen = [], set()
+    with open(path, encoding="utf-8", newline="") as f:
+        for r in csv.DictReader(f):
+            text = (r.get("Msg") or "").strip()
+            if not text or text in seen:
+                continue
+            seen.add(text)
+            rows.append({"label": "scam" if r["Label"].strip() == "spam" else "safe", "text": text})
+    return rows
+
+
 def _features() -> FeatureUnion:
     # Word n-grams catch phrasing; character n-grams survive typos and Hinglish spellings.
     return FeatureUnion([
@@ -48,17 +67,24 @@ class ScamClassifier:
         texts = [r["text"] for r in rows]
         labels = [1 if r["label"] == "scam" else 0 for r in rows]
         self.binary.fit(texts, labels)
-        scams = [r for r in rows if r["label"] == "scam"]
-        self.typer.fit([r["text"] for r in scams], [r["type"] for r in scams])
+        # The type model needs at least two labelled scam types; datasets that
+        # only say spam / ham leave it untrained.
+        scams = [r for r in rows if r["label"] == "scam" and r.get("type")]
+        if len({r["type"] for r in scams}) >= 2:
+            self.typer.fit([r["text"] for r in scams], [r["type"] for r in scams])
+        else:
+            self.typer = None
         return self
 
     def scam_probability(self, text: str) -> float:
         return float(self.binary.predict_proba([text])[0][1])
 
     def scam_type(self, text: str) -> str:
-        return str(self.typer.predict([text])[0])
+        return self.scam_type_with_confidence(text)[0]
 
     def scam_type_with_confidence(self, text: str) -> tuple[str, float]:
+        if self.typer is None:
+            return "unknown", 0.0
         probs = self.typer.predict_proba([text])[0]
         best = probs.argmax()
         return str(self.typer.classes_[best]), float(probs[best])
